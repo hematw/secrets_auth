@@ -1,7 +1,8 @@
 require("dotenv").config()
 const express = require('express');
 const mongoose = require('mongoose');
-const md5 = require('md5');
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 
 const app = express();
 
@@ -28,19 +29,22 @@ app.get("/register", (req, res) => {
 })
 
 app.post("/register", (req, res) => {
-    const newUser = new User({
-        email: req.body.username,
-        password: md5(req.body.password)
+    bcrypt.hash(req.body.password, saltRounds, (err, result) => {
+        const newUser = new User({
+            email: req.body.username,
+            password: result
+        });
+        if (!err) {
+            newUser.save()
+                .then((result) => {
+                    console.log(result);
+                    res.render("secrets")
+                })
+                .catch((err) => {
+                    console.log(err);
+                })
+        }
     })
-
-    newUser.save()
-        .then((result) => {
-            console.log(result);
-            res.render("secrets")
-        })
-        .catch((err) => {
-            console.log(err);
-        })
 })
 
 app.get("/login", (req, res) => {
@@ -49,18 +53,19 @@ app.get("/login", (req, res) => {
 
 app.post("/login", (req, res) => {
     let username = req.body.username;
-    let password = md5(req.body.password);
 
 
     User.findOne({ email: username })
-        .then((result) => {
-            if (result) {
-                if (result.password == password) {
-                    console.log(result);
-                    res.render("secrets")
-                } else {
-                    console.log("Icorrect Password!");
-                }
+        .then((foundUser) => {
+            if (foundUser !== null) {
+                console.log(bcrypt.getRounds(foundUser.password));
+                bcrypt.compare(req.body.password, foundUser.password, (err, result) => {
+                    if (result) {
+                        res.render("secrets")
+                    } else {
+                        console.log("Incorrect Password");
+                    }
+                })
             } else {
                 console.log("We couldn't found any user!");
             }
