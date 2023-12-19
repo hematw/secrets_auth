@@ -1,8 +1,7 @@
+require("dotenv").config()
 const express = require('express');
 const mongoose = require('mongoose');
 const encrypt = require('mongoose-encryption');
-
-
 
 const app = express();
 
@@ -10,17 +9,15 @@ app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static("public"));
 
-mongoose.connect("mongodb://localhost:27017/secretsDB");
+mongoose.connect(process.env.MONGO_STRING);
 
 const userSchema = new mongoose.Schema({
     email: String,
     password: String
 })
 
-const secKey = "Thisissecretkey.";
-
 userSchema.plugin(encrypt, {
-    secret: secKey,
+    secret: process.env.SEC_KEY,
     encryptedFields: ["password"]
 });
 
